@@ -282,7 +282,7 @@ void SimpleLRU::_reupdate()
 // filter`s hashs
 size_t SimpleLRU::_hash1(const std::string& s)
 {
-	const char* str = s.c_str();
+    const char* str = s.c_str();
     unsigned int hash = 0;
 
     for (; *str; str++)
@@ -300,32 +300,32 @@ size_t SimpleLRU::_hash1(const std::string& s)
 
 size_t SimpleLRU::_hash2(const std::string& s)
 {
-	const char* str = s.c_str();
-    unsigned int hash = 0;
+  const char* str = s.c_str();
+  unsigned int hash = 0;
 
-    for(; *str; str++)
-    {
-        hash += (unsigned char)(*str);
-        hash -= (hash << 13) | (hash >> 19);
-    }
+  for(; *str; str++)
+  {
+    hash += (unsigned char)(*str);
+    hash -= (hash << 13) | (hash >> 19);
+  }
 
-    return hash%_filter;
+  return hash%_filter;
 }
 
 size_t SimpleLRU::_hash3(const std::string& s)
 {
-	const char* str = s.c_str();
-    static const unsigned int b = 378551;
-    unsigned int a = 63689;
-    unsigned int hash = 0;
+  const char* str = s.c_str();
+  static const unsigned int b = 378551;
+  unsigned int a = 63689;
+  unsigned int hash = 0;
 
-    for(; *str; str++)
-    {
-        hash = hash * a + (unsigned char)(*str);
-        a *= b;
-    }
+  for(; *str; str++)
+  {
+    hash = hash * a + (unsigned char)(*str);
+    a *= b;
+  }
 
-    return hash%_filter;
+  return hash%_filter;
 }
 
 
