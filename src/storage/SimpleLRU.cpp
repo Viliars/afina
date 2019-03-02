@@ -263,6 +263,17 @@ void SimpleLRU::_add(const std::string& s)
   _bits[_hash3(s)] = true;
 }
 
+void SimpleLRU::_reupdate()
+{
+  _bits.resize(_filter, false);
+  lru_node* buf = _lru_first;
+  while(buf != nullptr)
+  {
+    _add(buf->key);
+    buf = buf->next;
+  }
+}
+
 
 
 

@@ -84,6 +84,7 @@ private:
     // for filter
     void _add(const std::string&);
     bool _possiblyContains(const std::string&);
+    void _reupdate();
     size_t _hash1(const std::string&);
     size_t _hash2(const std::string&);
     size_t _hash3(const std::string&);
