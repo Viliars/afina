@@ -24,14 +24,20 @@ public:
       _bits.resize(_filter, false);
     }
 
-    ~SimpleLRU() {
+    ~SimpleLRU()
+    {
         _lru_index.clear();
         _bits.clear();
-        while(_lru_first != nullptr)
+        if (_lru_first != nullptr)
         {
-          lru_node* buf = _lru_first;
-          _lru_first = _lru_first->next;
-          delete buf;
+            while (_lru_first->next != nullptr)
+            {
+                std::unique_ptr<lru_node> bufer;
+                bufer.swap(_lru_first->next);
+                _lru_first.swap(bufer);
+                bufer.reset();
+            }
+            _lru_first.reset();
         }
     }
 
@@ -60,7 +66,7 @@ private:
         const std::string key;
         std::string value;
         lru_node* prev;
-        lru_node* next;
+        std::unique_ptr<lru_node> next;
     };
 
     void _up(lru_node& old_node);
@@ -75,9 +81,8 @@ private:
     // element that wasn't used for longest time.
     //
     // List owns all nodes
-    lru_node* _lru_first = nullptr;
-    lru_node* _lru_last = nullptr;
-
+    std::unique_ptr<lru_node> _lru_first;
+    lru_node *_lru_last;
     // Index of nodes from list above, allows fast random access to elements by lru_node#key
     std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<lru_node>, std::less<std::string>> _lru_index;
 

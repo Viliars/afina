@@ -12,25 +12,28 @@ bool SimpleLRU::_put(const std::string &key, const std::string &value)
 
   while (size_of_new_elem + _size > _max_size)
   {
-    lru_node* buf = _lru_first;
-    _lru_index.erase(buf->key);
-    _lru_first = _lru_first->next;
-    _lru_first->prev = nullptr;
-    _size -= (buf->value.size() + buf->key.size());
-    delete buf;
+    lru_node& node = *_lru_first;
+    std::unique_ptr<lru_node> bufer; // To auto delete
+    if (node.next)
+    {
+        node.next.get()->prev = nullptr;
+    }
+    bufer.swap(_lru_first);
+    _lru_first = std::move(node.next);
+    _lru_index.erase(node.key);
+    _size -= (node.key.size() + node.value.size());
   }
-
-  lru_node* buf = new lru_node{key, value};
-  if(_lru_first != nullptr)
+  std::unique_ptr<lru_node> bufer{new lru_node{key, value}};
+  if(_lru_first.get() != nullptr)
   {
-    buf->prev = _lru_last;
-    _lru_last->next = buf;
-    _lru_last = buf;
+    bufer->prev = _lru_last;
+    _lru_last->next.swap(bufer);
+    _lru_last = _lru_last->next.get();
   }
   else
   {
-    _lru_first = buf;
-    _lru_last = buf;
+    _lru_first.swap(bufer);
+    _lru_last = _lru_first.get();
   }
   _lru_index.insert(
     std::make_pair(std::reference_wrapper<const std::string>(_lru_last->key),
@@ -43,100 +46,24 @@ void SimpleLRU::_up(lru_node& node)
 {
   if(_lru_last != &node)
   {
-    if(_lru_first != &node)
+    if(_lru_first.get() != &node)
     {
-      node.prev->next = node.next;
       node.next->prev = node.prev;
+      node.prev->next.swap(node.next);
+      _lru_last->next.swap(node.next);
       node.prev = _lru_last;
-      node.next = nullptr;
-      _lru_last->next = &node;
-      _lru_last = _lru_last->next;
+      _lru_last = &node;
     }
+    // если надо upнуть _lru_first
     else
     {
-      _lru_first = node.next;
+      _lru_first.swap(node.next);
       _lru_first->prev = nullptr;
+      _lru_last->next.swap(node.next);
       node.prev = _lru_last;
-      node.next = nullptr;
-      _lru_last->next = &node;
-      _lru_last = _lru_last->next;
+      _lru_last = &node;
     }
   }
-
-
-
-
-  //TODO хвост
-  // элемент не последний
-  /*
-  if(node.next != nullptr)
-  {
-    if(node.prev != _lru_first)
-    {
-      lru_node *left = node.prev, *mid = node.prev->next, *right = node.next;
-      lru_node *right2 = node.next->next;
-      left->next = right;
-      right->prev = left;
-      right->next = mid;
-      mid->prev = right;
-      mid->next = right2;
-      if(right2 != nullptr)
-      {
-        right2->prev = mid;
-      }
-      else
-      {
-        _lru_last = mid;
-      }
-    }
-    else
-    {
-      lru_node *left = node.prev, *mid = node.prev->next, *right = node.next;
-      if(mid != _lru_last)
-      {
-        left->next = right;
-        right->prev = left;
-        mid->next = left;
-        left->prev = mid;
-        mid->prev = nullptr;
-        _lru_first = mid;
-      }
-      else
-      {
-        mid->next = left;
-        left->prev = mid;
-        left->next = nullptr;
-        mid->prev = nullptr;
-        _lru_first = mid;
-        _lru_last = left;
-      }
-    }
-  }
-  */
-  /*
-  // Элемент не первый
-  if (old_node.prev != nullptr)
-  {
-    // Элемент не является вторым
-    if(old_node.prev->prev != nullptr)
-    {
-      old_node.prev->next = old_node.next;
-      old_node.next->prev = old_node.prev;
-      old_node.prev->prev->next = &old_node;
-      old_node.next = old_node.prev;
-      old_node.prev = old_node.prev->prev;
-      old_node.prev->prev = &old_node;
-    }
-    else
-    {
-      old_node.prev->next = old_node.next;
-      old_node.next->prev = old_node.prev;
-      old_node.next = old_node.prev;
-      _lru_first = _lru_first->next;
-      old_node.prev = nullptr;
-    }
-  }
-  */
 }
 
 
@@ -211,18 +138,17 @@ bool SimpleLRU::Delete(const std::string &key)
     {
       node.next->prev = node.prev;
     }
+    std::unique_ptr<lru_node> bufer; // Для авто удаления
     if (node.prev != nullptr)
     {
-      lru_node* buf = node.prev->next;
-      node.prev->next = node.next;
-      delete buf;
+      bufer.swap(node.prev->next);
+      node.prev->next = std::move(node.next);
     }
     // Если это первый узел в списке
     else
     {
-      lru_node* buf = _lru_first;
-      _lru_first = node.next;
-      delete buf;
+      bufer.swap(_lru_first);
+      _lru_first = std::move(node.next);
     }
 
     _size -= (node.key.size() + node.value.size());
@@ -266,16 +192,12 @@ void SimpleLRU::_add(const std::string& s)
 void SimpleLRU::_reupdate()
 {
   _bits.resize(_filter, false);
-  lru_node* buf = _lru_first;
-  while(buf != nullptr)
-  {
-    _add(buf->key);
-    buf = buf->next;
+  lru_node* bufer = _lru_first.get();
+  while (bufer->next.get() != nullptr) {
+      _add(bufer->key);
+      bufer = bufer->next.get();
   }
 }
-
-
-
 
 
 
