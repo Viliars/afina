@@ -85,13 +85,14 @@ void ServerImpl::Stop()
     shutdown(_server_socket, SHUT_RDWR);
 }
 
+
 // See Server.h
 void ServerImpl::Join()
 {
     assert(_thread.joinable());
     _thread.join();
     std::unique_lock<std::mutex> _lock(_mutex_for_stop);
-    _alive.wait(_lock, [this] { return this->_now_workers == 0; });
+    _alive.wait(_lock, [this] { return _now_workers == 0; });
     close(_server_socket);
 }
 
@@ -180,6 +181,11 @@ void ServerImpl::GoJoniGo(int client_socket) {
         // закрываем
         while ((readed_bytes = read(client_socket, client_buffer, sizeof(client_buffer))) > 0)
         {
+          if(!running.load())
+          {
+              readed_bytes = 0;
+              break;
+          }
             // !!! Получаем readed_bytes от сокета
             _logger->debug("Got {} bytes from socket", readed_bytes);
             while (readed_bytes > 0)

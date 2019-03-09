@@ -51,7 +51,7 @@ private:
     std::condition_variable _alive;
     std::mutex _mutex_for_stop;
 
-
+    friend bool _cond(ServerImpl* ser);
 
    // Logger instance
     std::shared_ptr<spdlog::logger> _logger;
