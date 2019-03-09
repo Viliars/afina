@@ -6,6 +6,9 @@
 
 #include <afina/network/Server.h>
 
+#include <mutex>
+#include <condition_variable>
+
 namespace spdlog {
 class logger;
 }
@@ -24,7 +27,7 @@ public:
     ~ServerImpl();
 
     // See Server.h
-    void Start(uint16_t port, uint32_t, uint32_t) override;
+    void Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) override;
 
     // See Server.h
     void Stop() override;
@@ -39,7 +42,18 @@ protected:
     void OnRun();
 
 private:
-    // Logger instance
+    uint32_t _max_workers;
+    uint32_t _now_workers = 0;
+    std::mutex _mutex;
+
+    void GoJoniGo(int client_socket);
+
+    std::condition_variable _alive;
+    std::mutex _mutex_for_stop;
+
+
+
+   // Logger instance
     std::shared_ptr<spdlog::logger> _logger;
 
     // Atomic flag to notify threads when it is time to stop. Note that
