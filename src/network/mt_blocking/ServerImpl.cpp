@@ -93,7 +93,8 @@ void ServerImpl::Stop()
 
 // See Server.h
 void ServerImpl::Join()
-{>    assert(_thread.joinable());
+{
+    assert(_thread.joinable());
     _thread.join();
     std::unique_lock<std::mutex> _lock(_mutex_for_stop);
     _alive.wait(_lock, [this] { return _now_workers == 0; });
