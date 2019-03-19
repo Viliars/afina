@@ -181,11 +181,6 @@ void ServerImpl::GoJoniGo(int client_socket) {
         // закрываем
         while ((readed_bytes = read(client_socket, client_buffer, sizeof(client_buffer))) > 0)
         {
-          if(!running.load())
-          {
-              readed_bytes = 0;
-              break;
-          }
             // !!! Получаем readed_bytes от сокета
             _logger->debug("Got {} bytes from socket", readed_bytes);
             while (readed_bytes > 0)
@@ -249,6 +244,11 @@ void ServerImpl::GoJoniGo(int client_socket) {
                     command_to_execute.reset();
                     argument_for_command.resize(0);
                     parser.Reset();
+                }
+                
+                if(!running.load())
+                {
+                    shutdown(client_socket, SHUT_RDWR);
                 }
             } // while (readed_bytes)
         }
