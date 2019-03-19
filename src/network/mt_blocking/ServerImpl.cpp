@@ -179,7 +179,7 @@ void ServerImpl::GoJoniGo(int client_socket) {
         // в моём варианте mt_block при завершении работы сервера корректно
         // довыполняется текущая команда, после чего соединение клиента
         // закрываем
-        while ((readed_bytes = read(client_socket, client_buffer, sizeof(client_buffer))) > 0)
+        while (!running.load() && (readed_bytes = read(client_socket, client_buffer, sizeof(client_buffer))) > 0)
         {
             // !!! Получаем readed_bytes от сокета
             _logger->debug("Got {} bytes from socket", readed_bytes);
@@ -244,11 +244,6 @@ void ServerImpl::GoJoniGo(int client_socket) {
                     command_to_execute.reset();
                     argument_for_command.resize(0);
                     parser.Reset();
-                }
-                
-                if(!running.load())
-                {
-                    shutdown(client_socket, SHUT_RDWR);
                 }
             } // while (readed_bytes)
         }
