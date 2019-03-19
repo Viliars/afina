@@ -143,7 +143,7 @@ void ServerImpl::OnRun()
                     std::thread(&ServerImpl::GoJoniGo, this, client_socket).detach();
             }
         }
-        close(client_socket);
+        //close(client_socket);
     }
 
     // Cleanup on exit...
@@ -174,11 +174,6 @@ void ServerImpl::GoJoniGo(int client_socket) {
     try {
         int readed_bytes = -1;
         char client_buffer[4096];
-        // TODO: в st_block после завершения работы сервера уже
-        // подключённый пользователь может продолжать слать ещё команды, как я понял.
-        // в моём варианте mt_block при завершении работы сервера корректно
-        // довыполняется текущая команда, после чего соединение клиента
-        // закрываем
         while (!running.load() && (readed_bytes = read(client_socket, client_buffer, sizeof(client_buffer))) > 0)
         {
             // !!! Получаем readed_bytes от сокета
@@ -202,9 +197,6 @@ void ServerImpl::GoJoniGo(int client_socket) {
                             arg_remains += 2;
                         }
                     }
-                    // Обрабатываем корректно, когда нашли команду в n байтах
-                    // Но т.к изначально подали new_bytes= > n
-                    // то надо вернуть корретку
                     if (parsed == 0)
                     {
                         break;
@@ -257,7 +249,7 @@ void ServerImpl::GoJoniGo(int client_socket) {
         }
       }
       catch (std::runtime_error &ex)
-      {
+      {>
           _logger->error("Failed to process connection on descriptor {}: {}", client_socket, ex.what());
       }
     close(client_socket);
