@@ -83,17 +83,26 @@ void ServerImpl::Stop()
 {
     running.store(false);
     shutdown(_server_socket, SHUT_RDWR);
+    std::lock_guard<std::mutex> lock2(_mutex2);
+    for(auto& cs : client_sockets)
+    {
+        shutdown(cs, SHUT_RDWR);
+    }
 }
 
 
 // See Server.h
 void ServerImpl::Join()
-{
-    assert(_thread.joinable());
+{>    assert(_thread.joinable());
     _thread.join();
     std::unique_lock<std::mutex> _lock(_mutex_for_stop);
     _alive.wait(_lock, [this] { return _now_workers == 0; });
     close(_server_socket);
+    // std::lock_guard<std::mutex> lock2(_mutex2);
+    for(auto& cs : client_sockets)
+    {
+        close(cs);
+    }
 }
 
 // See Server.h
@@ -141,6 +150,8 @@ void ServerImpl::OnRun()
             {
                     _now_workers++;
                     std::thread(&ServerImpl::GoJoniGo, this, client_socket).detach();
+                std::lock_guard<std::mutex> lock2(_mutex2);
+                client_sockets.insert(client_socket);
             }
         }
         //close(client_socket);
@@ -253,6 +264,8 @@ void ServerImpl::GoJoniGo(int client_socket) {
           _logger->error("Failed to process connection on descriptor {}: {}", client_socket, ex.what());
       }
     close(client_socket);
+    std::lock_guard<std::mutex> lock2(_mutex2);
+    client_sockets.erase(client_socket);
 
 // ----------------------------
 std::lock_guard<std::mutex> lock(_mutex);
