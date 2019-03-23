@@ -83,10 +83,10 @@ void ServerImpl::Stop()
 {
     running.store(false);
     shutdown(_server_socket, SHUT_RDWR);
-    std::lock_guard<std::mutex> lock2(_mutex2);
-    for(auto& cs : client_sockets)
+    std::lock_guard<std::mutex> lock(_mutex);
+    for(auto cs : client_sockets)
     {
-        shutdown(cs, SHUT_RDWR);
+        shutdown(cs, SHUT_RD);
     }
 }
 
@@ -96,11 +96,10 @@ void ServerImpl::Join()
 {
     assert(_thread.joinable());
     _thread.join();
-    std::unique_lock<std::mutex> _lock(_mutex_for_stop);
+    std::unique_lock<std::mutex> _lock(_mutex);
     _alive.wait(_lock, [this] { return _now_workers == 0; });
     close(_server_socket);
-    // std::lock_guard<std::mutex> lock2(_mutex2);
-    for(auto& cs : client_sockets)
+    for(auto cs : client_sockets)
     {
         close(cs);
     }
@@ -151,7 +150,6 @@ void ServerImpl::OnRun()
             {
                     _now_workers++;
                     std::thread(&ServerImpl::GoJoniGo, this, client_socket).detach();
-                std::lock_guard<std::mutex> lock2(_mutex2);
                 client_sockets.insert(client_socket);
             }
         }
@@ -265,13 +263,10 @@ void ServerImpl::GoJoniGo(int client_socket) {
           _logger->error("Failed to process connection on descriptor {}: {}", client_socket, ex.what());
       }
     close(client_socket);
-    std::lock_guard<std::mutex> lock2(_mutex2);
+    std::lock_guard<std::mutex> lock(_mutex);
     client_sockets.erase(client_socket);
-
-// ----------------------------
-std::lock_guard<std::mutex> lock(_mutex);
-_now_workers--;
-_alive.notify_one();
+    _now_workers--;
+    _alive.notify_one();
 }
 
 } // namespace MTblocking

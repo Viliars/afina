@@ -23,6 +23,7 @@ void modifyEpollContext(int epollfd, int operation, int fd, uint32_t events, voi
         exit(1);
     }
 }
+
 void *handle(void *ptr) {
     struct EchoEvent *echoEvent = ptr;
 
@@ -168,7 +169,8 @@ int main(int argc, char **argv) {
         int i;
         for (i = 0; i < n; i++) {
             if (events[i].data.ptr == &serverfd) {
-                if (events[i].events & EPOLLHUP || events[i].events & EPOLLERR) {
+                if (events[i].events & EPOLLHUP || events[i].events & EPOLLERR)
+                {
                     /*
                      * EPOLLHUP and EPOLLERR are always monitored.
                      */

@@ -47,12 +47,10 @@ private:
     uint32_t _max_workers;
     uint32_t _now_workers = 0;
     std::mutex _mutex;
-    std::mutex _mutex2;
 
     void GoJoniGo(int client_socket);
 
     std::condition_variable _alive;
-    std::mutex _mutex_for_stop;
 
     friend bool _cond(ServerImpl* ser);
 
