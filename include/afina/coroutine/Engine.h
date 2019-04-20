@@ -42,7 +42,7 @@ private:
     /**
      * Where coroutines stack begins
      */
-    char *StackBottom;
+    char *StackBottom; // адрес дна стэка начиная с которого начинается корутины
 
     /**const int&
      * Current coroutine
