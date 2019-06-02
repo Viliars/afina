@@ -259,7 +259,7 @@ void ServerImpl::GoJoniGo(int client_socket) {
         }
       }
       catch (std::runtime_error &ex)
-      {>
+      {
           _logger->error("Failed to process connection on descriptor {}: {}", client_socket, ex.what());
       }
     close(client_socket);

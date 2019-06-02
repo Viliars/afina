@@ -26,7 +26,7 @@ private:
         char *Low = nullptr;
 
         // coroutine stack end address
-        char *Hight = nullptr;
+        char *High = nullptr;
 
         // coroutine stack copy buffer
         std::tuple<char *, uint32_t> Stack = std::make_tuple(nullptr, 0);
@@ -42,7 +42,7 @@ private:
     /**
      * Where coroutines stack begins
      */
-    char *StackBottom; // адрес дна стэка начиная с которого начинается корутины
+    char *StackBottom;
 
     /**const int&
      * Current coroutine
@@ -110,6 +110,10 @@ public:
      * @param arguments to be passed to the main coroutine
      */
     template <typename... Ta> void start(void (*main)(Ta...), Ta &&... args) {
+        if (get_stack_dir(nullptr) != -1) {
+            throw std::runtime_error("Implementation does not support stack which grows up");
+        }
+
         // To acquire stack begin, create variable on stack and remember its address
         char StackStartsHere;
         this->StackBottom = &StackStartsHere;
@@ -195,6 +199,18 @@ public:
         }
 
         return pc;
+    }
+
+
+
+    int get_stack_dir(char* ptr) {
+        char here;
+        char *p = &here;
+        if (ptr == nullptr) {
+            return get_stack_dir(p);
+        } else {
+            return p > ptr ? +1 : -1;
+        }
     }
 };
 
