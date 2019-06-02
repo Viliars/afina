@@ -8,43 +8,45 @@ namespace Afina {
 namespace Coroutine {
 
 void Engine::Store(context &ctx) {
-	char stack_pos;
-	char *top = &stack_pos;
-
-	ctx.Low = top; // assume stack grows down
+	char stack_now;
+	//TODO Поддержка разных стеков
+	char *top = &stack_now;
+	ctx.Low = top;
 	ctx.High = StackBottom;
 	size_t size = ctx.High - ctx.Low;
-
+	// Смотрим хватает ли нам места для сохранения
+	// Если нет, то выделяем больше памяти
 	if (size > std::get<1>(ctx.Stack)) {
 		delete std::get<0>(ctx.Stack);
 		std::get<0>(ctx.Stack) = new char[size];
 		std::get<1>(ctx.Stack) = size;
 	}
-
+	// Сохраняем все
 	memcpy(std::get<0>(ctx.Stack), ctx.Low, size);
 }
 
 void Engine::Restore(context &ctx) {
-	char stack_pos;
-	if (&stack_pos >= ctx.Low) {
-		Restore(ctx); // so why not use array?
+	char stack_now;
+	// Раскручиваем стек
+	if (&stack_now >= ctx.Low) {
+		Restore(ctx);
 	}
-
+	// Восстанавливаем контекст
 	memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
 	longjmp(ctx.Environment, 1);
 }
 
 void Engine::yield() {
-	context *todo = alive;
-	if (todo == cur_routine && todo != nullptr) {
-		todo = todo->next;
+	context *next = alive;
+	if (next == cur_routine && next != nullptr) {
+		next = next->next;
 	}
 
-	if (todo == nullptr) {
+	if (next == nullptr) {
 		return;
 	}
 
-	sched(todo);
+	sched(next);
 }
 
 void Engine::sched(void *routine_) {
