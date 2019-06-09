@@ -93,8 +93,7 @@ void Connection::DoRead() {
                     bool add_EPOLLOUT = bufer.empty();
 
                     bufer.push_back(result);
-                    if (add_EPOLLOUT)
-                        _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLOUT;
+                    _event.events |= EPOLLOUT;
 
                     // Prepare for the next command
                     command_to_execute.reset();
@@ -127,28 +126,28 @@ void Connection::DoWrite() {
         iovecs[i].iov_len = bufer[i].size();
         iovecs[i].iov_base = &(bufer[i][0]);
     }
-    iovecs[0].iov_base = static_cast<char *>(iovecs[0].iov_base) + cur_position;
+    // void* to char*  and + pos
+    iovecs[0].iov_base = static_cast<char *>(iovecs[0].iov_base) + pos;
 
 
     // ssize_t writev(int filedes, const struct iovec *iov, int iovcnt);
-    int written;
-    if ((written = writev(_socket, iovecs, bufer.size())) <= 0) {
+    int writed_bytes = writev(_socket, iovecs, bufer.size());
+    if (writed_bytes <= 0) {
         flag = false;
         throw std::runtime_error("Failed to send response");
     }
 
-    cur_position += written;
+    pos += writed_bytes;
 
     int i = 0;
-    while ((i < bufer.size()) && ((cur_position - iovecs[i].iov_len) >= 0)) {
+    while ((i < bufer.size()) && ((pos - iovecs[i].iov_len) >= 0)) {
         i++;
-        cur_position -= iovecs[i].iov_len;
+        pos -= iovecs[i].iov_len;
     }
 
     bufer.erase(bufer.begin(), bufer.begin() + i);
-    if (bufer.empty()) {
-        _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
-    }
+    if (bufer.empty())
+        _event.events = EPOLLRDHUP | EPOLLERR | EPOLLIN;
 }
 
 } // namespace STnonblock

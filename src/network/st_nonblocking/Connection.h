@@ -20,7 +20,7 @@ namespace STnonblock {
 
 class Connection {
 public:
-    Connection(int s,  std::shared_ptr<Afina::Storage> ps,
+    Connection(int s, std::shared_ptr<Afina::Storage> ps,
       std::shared_ptr<spdlog::logger> pl) : _socket(s), pStorage(std::move(ps)),
       _logger(std::move(pl)) {
         std::memset(&_event, 0, sizeof(struct epoll_event));
@@ -56,7 +56,7 @@ private:
     std::shared_ptr<spdlog::logger> _logger;
     std::vector<std::string> bufer;
 
-    int cur_position = 0;
+    int pos = 0;
 };
 
 } // namespace STnonblock

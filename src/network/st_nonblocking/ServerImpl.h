@@ -3,9 +3,9 @@
 
 #include <thread>
 #include <vector>
-
+#include <set>
 #include <afina/network/Server.h>
-
+#include "Connection.h"
 namespace spdlog {
 class logger;
 }
@@ -40,6 +40,7 @@ protected:
     void OnNewConnection(int);
 
 private:
+    std::set<Connection *> _connections;
     // logger to use
     std::shared_ptr<spdlog::logger> _logger;
 

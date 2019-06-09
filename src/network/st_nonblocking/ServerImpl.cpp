@@ -164,6 +164,7 @@ void ServerImpl::OnRun() {
 
                 close(pc->_socket);
                 pc->OnClose();
+                _connections.erase(pc);
 
                 delete pc;
             } else if (pc->_event.events != old_mask) {
@@ -178,6 +179,14 @@ void ServerImpl::OnRun() {
             }
         }
     }
+
+    for (Connection* pc : _connections) {
+        close(pc->_socket);
+        pc->OnClose();
+        delete pc;
+    }
+    _connections.clear();
+
     _logger->warn("Acceptor stopped");
 }
 
@@ -207,16 +216,17 @@ void ServerImpl::OnNewConnection(int epoll_descr) {
         }
 
         // Register the new FD to be monitored by epoll.
-        Connection *pc = new Connection(infd);
+        Connection *pc = new Connection(infd, pStorage, _logger);
         if (pc == nullptr) {
             throw std::runtime_error("Failed to allocate connection");
         }
-
+        _connections.insert(pc);
         // Register connection in worker's epoll
         pc->Start();
         if (pc->isAlive()) {
             if (epoll_ctl(epoll_descr, EPOLL_CTL_ADD, pc->_socket, &pc->_event)) {
                 pc->OnError();
+                _connections.erase(pc);
                 delete pc;
             }
         }
