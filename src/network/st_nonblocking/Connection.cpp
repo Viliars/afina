@@ -121,6 +121,8 @@ void Connection::DoWrite() {
 //void *iov_base; /* начальный адрес буфера */
 //size_t iov_len; /* размер буфера */
 //};
+
+  //TODO может падать если надо отправить кучу сообщений
     struct iovec iovecs[bufer.size()];
     for (int i = 0; i < bufer.size(); i++) {
         iovecs[i].iov_len = bufer[i].size();
@@ -128,7 +130,7 @@ void Connection::DoWrite() {
     }
     // void* to char*  and + pos
     iovecs[0].iov_base = static_cast<char *>(iovecs[0].iov_base) + pos;
-
+    iovecs[0].iov_len -= pos;
 
     // ssize_t writev(int filedes, const struct iovec *iov, int iovcnt);
     int writed_bytes = writev(_socket, iovecs, bufer.size());
@@ -138,9 +140,9 @@ void Connection::DoWrite() {
     }
 
     pos += writed_bytes;
-
+    //TODO заменить на итератор
     int i = 0;
-    while ((i < bufer.size()) && ((pos - iovecs[i].iov_len) >= 0)) {
+    while ((i < bufer.size()) && ((pos >= iovecs[i].iov_len))) {
         i++;
         pos -= iovecs[i].iov_len;
     }
