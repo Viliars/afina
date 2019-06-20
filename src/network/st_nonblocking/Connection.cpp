@@ -33,22 +33,22 @@ void Connection::OnClose() {
 void Connection::DoRead() {
     _logger->debug("Do read on {} socket", _socket);
     try {
-        int got_bytes = -1;
-        while ((got_bytes = read(_socket, client_buffer + already_read_bytes,
-                                 sizeof(client_buffer) - already_read_bytes)) > 0) {
-            already_read_bytes += got_bytes;
-            _logger->debug("Got {} bytes from socket", got_bytes);
+        int readed_bytes = -1;
+        while ((readed_bytes = read(_socket, client_buffer + now_pos_bytes,
+                                 sizeof(client_buffer) - now_pos_bytes)) > 0) {
+            now_pos_bytes += readed_bytes;
+            _logger->debug("Got {} bytes from socket", readed_bytes);
 
             // Single block of data read from the socket could trigger inside actions a multiple times,
             // for example:
             // - read#0: [<command1 start>]
             // - read#1: [<command1 end> <argument> <command2> <argument for command 2> <command3> ... ]
-            while (already_read_bytes > 0) {
-                _logger->debug("Process {} bytes", already_read_bytes);
+            while (now_pos_bytes > 0) {
+                _logger->debug("Process {} bytes", now_pos_bytes);
                 // There is no command yet
                 if (!command_to_execute) {
                     std::size_t parsed = 0;
-                    if (parser.Parse(client_buffer, already_read_bytes, parsed)) {
+                    if (parser.Parse(client_buffer, now_pos_bytes, parsed)) {
                         // There is no command to be launched, continue to parse input stream
                         // Here we are, current chunk finished some command, process it
                         _logger->debug("Found new command: {} in {} bytes", parser.Name(), parsed);
@@ -63,21 +63,21 @@ void Connection::DoRead() {
                     if (parsed == 0) {
                         break;
                     } else {
-                        std::memmove(client_buffer, client_buffer + parsed, already_read_bytes - parsed);
-                        already_read_bytes -= parsed;
+                        std::memmove(client_buffer, client_buffer + parsed, now_pos_bytes - parsed);
+                        now_pos_bytes -= parsed;
                     }
                 }
 
                 // There is command, but we still wait for argument to arrive...
                 if (command_to_execute && arg_remains > 0) {
-                    _logger->debug("Fill argument: {} bytes of {}", already_read_bytes, arg_remains);
+                    _logger->debug("Fill argument: {} bytes of {}", now_pos_bytes, arg_remains);
                     // There is some parsed command, and now we are reading argument
-                    std::size_t to_read = std::min(arg_remains, std::size_t(already_read_bytes));
+                    std::size_t to_read = std::min(arg_remains, std::size_t(now_pos_bytes));
                     argument_for_command.append(client_buffer, to_read);
 
-                    std::memmove(client_buffer, client_buffer + to_read, already_read_bytes - to_read);
+                    std::memmove(client_buffer, client_buffer + to_read, now_pos_bytes - to_read);
                     arg_remains -= to_read;
-                    already_read_bytes -= to_read;
+                    now_pos_bytes -= to_read;
                 }
 
                 // Thre is command & argument - RUN!
@@ -101,7 +101,7 @@ void Connection::DoRead() {
             } // while (read_bytes)
         }
 
-        if (got_bytes == 0) {
+        if (readed_bytes == 0) {
             _logger->debug("Connection closed");
         } else {
             throw std::runtime_error(std::string(strerror(errno)));

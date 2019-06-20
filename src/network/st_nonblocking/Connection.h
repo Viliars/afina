@@ -46,7 +46,7 @@ private:
     struct epoll_event _event
     ;
 
-    int already_read_bytes = 0;
+    int now_pos_bytes = 0;
     char client_buffer[4096];
     std::size_t arg_remains;
     Protocol::Parser parser;
