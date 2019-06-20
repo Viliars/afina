@@ -13,7 +13,7 @@ namespace STnonblock {
 void Connection::Start() {
   _event.events = EPOLLRDHUP | EPOLLERR; // если вдруг ошибки или соединение закрылось
   _event.events |= EPOLLIN; // хотим сначала читать
-  _event.data.fd = _socket; // чтоб знать какой сокет\
+  _event.data.fd = _socket; // чтоб знать какой сокет
   _logger->info("Start on socket {}", _socket);
 }
 
@@ -90,8 +90,6 @@ void Connection::DoRead() {
                     // Save response
                     result += "\r\n";
 
-                    bool add_EPOLLOUT = bufer.empty();
-
                     bufer.push_back(result);
                     _event.events |= EPOLLOUT;
 
@@ -103,7 +101,6 @@ void Connection::DoRead() {
             } // while (read_bytes)
         }
 
-        flag = false;
         if (got_bytes == 0) {
             _logger->debug("Connection closed");
         } else {
@@ -122,9 +119,14 @@ void Connection::DoWrite() {
 //size_t iov_len; /* размер буфера */
 //};
 
-  //TODO может падать если надо отправить кучу сообщений
-    struct iovec iovecs[bufer.size()];
-    for (int i = 0; i < bufer.size(); i++) {
+    size_t size;
+    if(bufer.size() > 64)
+        size = 64;
+    else
+        size = bufer.size();
+    
+    struct iovec iovecs[size];
+    for (int i = 0; i < size; i++) {
         iovecs[i].iov_len = bufer[i].size();
         iovecs[i].iov_base = &(bufer[i][0]);
     }
@@ -133,18 +135,21 @@ void Connection::DoWrite() {
     iovecs[0].iov_len -= pos;
 
     // ssize_t writev(int filedes, const struct iovec *iov, int iovcnt);
-    int writed_bytes = writev(_socket, iovecs, bufer.size());
+    int writed_bytes = writev(_socket, iovecs, size);
     if (writed_bytes <= 0) {
         flag = false;
         throw std::runtime_error("Failed to send response");
     }
 
     pos += writed_bytes;
-    //TODO заменить на итератор
+
+
     int i = 0;
-    while ((i < bufer.size()) && ((pos >= iovecs[i].iov_len))) {
+    iovec* ptr = iovecs;
+    while ((i < size) && ((pos >= (*ptr).iov_len))) {
         i++;
-        pos -= iovecs[i].iov_len;
+        ptr += 1;
+        pos -= (*ptr).iov_len;
     }
 
     bufer.erase(bufer.begin(), bufer.begin() + i);
