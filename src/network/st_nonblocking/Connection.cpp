@@ -11,10 +11,10 @@ namespace STnonblock {
 
 // See Connection.h
 void Connection::Start() {
-  _event.events = EPOLLRDHUP | EPOLLERR; // если вдруг ошибки или соединение закрылось
-  _event.events |= EPOLLIN; // хотим сначала читать
-  _event.data.fd = _socket; // чтоб знать какой сокет
-  _logger->info("Start on socket {}", _socket);
+    _event.events = EPOLLRDHUP | EPOLLERR; // если вдруг ошибки или соединение закрылось
+    _event.events |= EPOLLIN; // хотим сначала читать
+    _event.data.fd = _socket; // чтоб знать какой сокет
+    _logger->info("Start on socket {}", _socket);
 }
 
 // See Connection.h
@@ -25,8 +25,8 @@ void Connection::OnError() {
 
 // See Connection.h
 void Connection::OnClose() {
-  flag = false;
-  _logger->info("Close on socket {}", _socket);
+    flag = false;
+    _logger->info("Close on socket {}", _socket);
 }
 
 // See Connection.h
@@ -124,7 +124,7 @@ void Connection::DoWrite() {
         size = 64;
     else
         size = bufer.size();
-    
+
     struct iovec iovecs[size];
     for (int i = 0; i < size; i++) {
         iovecs[i].iov_len = bufer[i].size();

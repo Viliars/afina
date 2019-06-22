@@ -39,12 +39,12 @@ protected:
     void DoWrite();
 
 private:
-    bool flag = true;
     friend class ServerImpl;
 
+
+    bool flag = true;
     int _socket;
-    struct epoll_event _event
-    ;
+    struct epoll_event _event;
 
     int now_pos_bytes = 0;
     char client_buffer[4096];
