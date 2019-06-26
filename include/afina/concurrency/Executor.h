@@ -9,6 +9,9 @@
 #include <string>
 #include <thread>
 
+class Executor;
+void perform(Executor *executor);
+
 namespace Afina {
 namespace Concurrency {
 
@@ -28,7 +31,7 @@ class Executor {
         kStopped
     };
 
-    Executor(std::string name, int size);
+    Executor(uint low_watermark, uint high_watermark, uint max_queue_size, uint idle_time);
     ~Executor();
 
     /**
@@ -37,7 +40,7 @@ class Executor {
      *
      * In case if await flag is true, call won't return until all background jobs are done and all threads are stopped
      */
-    void Stop(bool await = false);
+    void Stop(bool);
 
     /**
      * Add function to be executed on the threadpool. Method returns true in case if task has been placed
@@ -55,8 +58,15 @@ class Executor {
             return false;
         }
 
-        // Enqueue new task
         tasks.push_back(exec);
+        if ((_ready_threads == 0) && (_now_threads < _hight_watermark)) {
+            std::thread thread(perform, this);
+            // пускаем в плавание
+            thread.detach();
+            _now_threads += 1;
+            _ready_threads += 1;
+        }
+        lock.unlock();
         empty_condition.notify_one();
         return true;
     }
@@ -82,11 +92,12 @@ private:
      * Conditional variable to await new data in case of empty queue
      */
     std::condition_variable empty_condition;
+    std::condition_variable end_condition;
 
     /**
      * Vector of actual threads that perorm execution
      */
-    std::vector<std::thread> threads;
+    //std::vector<std::thread> threads;
 
     /**
      * Task queue
@@ -97,6 +108,14 @@ private:
      * Flag to stop bg threads
      */
     State state;
+
+    uint _ready_threads = 0;
+    uint _now_threads = 0;
+    // -------
+    const uint _low_watermark;
+    const uint _hight_watermark;
+    const uint _max_queue_size;
+    const uint _idle_time;
 };
 
 } // namespace Concurrency
